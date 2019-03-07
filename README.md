@@ -73,7 +73,7 @@ For example:
 
 <img src="docs/418.png" width="256px"/>
 
-We are modifying images downloaded from the (Stanford Dog Dataset)[http://vision.stanford.edu/aditya86/ImageNetDogs/]. To download it, run the command:
+We are modifying images downloaded from the [Stanford Dog Dataset](http://vision.stanford.edu/aditya86/ImageNetDogs/). To download it, run the command:
 
 ```python tools/download-dataset.py```
 
