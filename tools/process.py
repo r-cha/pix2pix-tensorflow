@@ -20,13 +20,19 @@ edge_pool = None
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_dir", required=True, help="path to folder containing images")
 parser.add_argument("--output_dir", required=True, help="output path")
-parser.add_argument("--operation", required=True, choices=["grayscale", "resize", "blank", "combine", "edges"])
+parser.add_argument("--operation", required=True, choices=["grayscale", "resize", "blank", "combine", "edges", "hole"])
 parser.add_argument("--workers", type=int, default=1, help="number of workers")
 # resize
 parser.add_argument("--pad", action="store_true", help="pad instead of crop for resize operation")
 parser.add_argument("--size", type=int, default=256, help="size to use for resize operation")
 # combine
 parser.add_argument("--b_dir", type=str, help="path to folder containing B images for combine operation")
+# hole
+parser.add_argument("--hole_type", choices=["blur", "color"])
+parser.add_argument("--random", type=bool, default=False, help="randomize the holes applied to the images")
+parser.add_argument("--bounding_box", nargs=4, type=int, help="bounding box of hole in the form 'x1 y1 x2 y2'")
+parser.add_argument("--sigma", type=int, help="the standard deviation for the gaussian kernel used to blur")
+parser.add_argument("--color", nargs=3, type=int, help="the color of the hole in the form 'r g b'")
 a = parser.parse_args()
 
 
@@ -70,6 +76,35 @@ def blank(src):
     dst[offset:offset + size,offset:offset + size,:] = np.ones([size, size, 3])
     return dst
 
+def hole(src):
+    src_height, src_width, _ = src.shape
+
+    dst = src
+
+    if a.bounding_box is not None:
+        bounding_box = dst[a.bounding_box[0]:a.bounding_box[2], a.bounding_box[1]:a.bounding_box[3],:]
+    elif a.random:
+        x1 = int(src_width * np.random.random())
+        x2 = int(src_width * np.random.random())
+        y1 = int(src_height * np.random.random())
+        y2 = int(src_height * np.random.random())
+        bounding_box = dst[min(x1, x2):max(x1, x2), min(y1, y2):max(y1, y2),:]
+    else:
+        raise Exception("bounding box or random not specified")
+
+    if a.hole_type == "blur":
+        if a.sigma is not None:
+            from scipy.ndimage import gaussian_filter
+            for channel in range(3):
+                bounding_box[:,:,channel] = gaussian_filter(bounding_box[:,:,channel], sigma=a.sigma)
+        else:
+            raise Exception("sigma not defined")
+    elif a.hole_type == "color":
+        for channel in range(3):
+            bounding_box[:,:,channel].fill(a.color[channel])
+
+    return dst
+        
 
 def combine(src, src_path):
     if a.b_dir is None:
@@ -202,6 +237,8 @@ def process(src_path, dst_path):
         dst = combine(src, src_path)
     elif a.operation == "edges":
         dst = edges(src)
+    elif a.operation == "hole":
+        dst = hole(src)
     else:
         raise Exception("invalid operation")
 

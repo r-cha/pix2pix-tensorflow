@@ -115,6 +115,33 @@ python tools/split.py \
 
 The folder `photos/combined` will now have `train` and `val` subfolders that you can use for training and testing.
 
+#### To Create images with holes of a given color or blur
+
+```sh
+# Resize source images
+python tools/process.py \
+  --input_dir photos/original \
+  --operation resize \
+  --output_dir photos/resized
+# Create images with randomly placed red holes
+python tools/process.py \
+  --input_dir photos/resized \
+  --hole_type color \
+  --random True \
+  --color 255 0 0 \
+  --operation hole \
+  --output_dir photos/redholes
+# Combine resized images with holed images
+python tools/process.py \
+  --input_dir photos/resized \
+  --b_dir photos/redholes \
+  --operation combine \
+  --output_dir photos/combined
+# Split into train/val set
+python tools/split.py \
+  --dir photos/combined
+```
+
 #### Creating image pairs from existing images
 
 If you have two directories `a` and `b`, with corresponding images (same name, same dimensions, different data) you can combine them with `process.py`:
